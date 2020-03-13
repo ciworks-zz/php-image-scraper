@@ -1,8 +1,25 @@
 {
+  "name": "ciworks/imageScanner",
+  "description": "Code kata for creating an imageScanner",
   "require": {
-    "curl/curl": "^2.0"
+    "php": ">=5.8.0",
+    "curl/curl": "^2.0",
+    "php-di/php-di": "^6.0",
+    "vlucas/phpdotenv": "^4.1"
   },
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Chima Ijeoma",
+      "email": "code@ciworks.co.uk"
+    }
+  ],
   "autoload": {
-    "psr-4": {"CIWORKS\\": "src/"}
+    "psr-4": {
+      "CiWorks\\App\\": "src/"
+    }
+  },
+  "archive": {
+    "exclude": ["vendor", ".DS_Store"]
   }
 }

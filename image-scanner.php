@@ -1,23 +1,28 @@
 <?php
 
-require "vendor/autoload.php";
+header("Content-Type: application/json");
 
-$imageScannerClass = '\\CIWORKS\Classes\ImageScanner';
-$funcName = 'fetch';
+// Autoloading and DI prerequisites
+require_once('./src/bootstrap.php');
 
-// position [0] is the script file name
+$scriptName = $argv[0];
 $remoteUrl = $argv[1];
 
-echo "\n";
-echo "Calling '$argv[0] on remote URL $remoteUrl'...\n";
-echo "*************************************************\n";
+printf("\nCalling %s on remote URL %s\n", $scriptName, $remoteUrl);
+
+// banal formatting
+$asx = str_repeat('*', strlen($remoteUrl));
+
+echo "****************************************$asx\n";
 
 if (empty($remoteUrl)) {
     echo "Unable to process the scanner - supplied URL is not a string\n\n";
     exit();
 }
 
-$class = new $imageScannerClass;
-$output = $class::fetch($remoteUrl);
-$jsonOutput = json_encode($output);
-echo $jsonOutput;
+$output = $imageScanner->fetch($remoteUrl);
+
+echo json_encode($output);
+
+echo "\n****************************************$asx\n";
+echo "Script completed - " . count($output) . " links returned\n";
