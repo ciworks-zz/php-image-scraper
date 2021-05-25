@@ -1,28 +1,30 @@
 <?php
 
-header("Content-Type: application/json");
-
-// Autoloading and DI prerequisites
 require_once('./src/bootstrap.php');
 
 $scriptName = $argv[0];
 $remoteUrl = $argv[1];
+$targetDir = $argv[2];
 
-printf("\nCalling %s on remote URL %s\n", $scriptName, $remoteUrl);
-
-// banal formatting
-$asx = str_repeat('*', strlen($remoteUrl));
-
-echo "****************************************$asx\n";
+$logger->info(
+    sprintf("Calling %s on remote URL %s", $scriptName, $remoteUrl)
+);
 
 if (empty($remoteUrl)) {
-    echo "Unable to process the scanner - supplied URL is not a string\n\n";
+    echo "No url supplied!\n\n";
     exit();
 }
 
-$output = $imageScanner->fetch($remoteUrl);
+try {
+    $scanner->setFolderName($targetDir);
+    $output = $scanner->fetch($remoteUrl);
+    $scanner->scrape($output);
 
-echo json_encode($output);
+    echo "Script completed - " . count($output) . " images scraped\n";
+    $logger->info(sprintf("Script completed - %d images scraped", count($output)));
+} catch (Exception $exception) {
+    echo "Script failed - " . $exception->getMessage();
+    $logger->error("Script failed - " . $exception->getMessage());
+}
 
-echo "\n****************************************$asx\n";
-echo "Script completed - " . count($output) . " links returned\n";
+

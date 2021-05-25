@@ -1,25 +1,30 @@
 {
-  "name": "ciworks/imageScanner",
-  "description": "Code kata for creating an imageScanner",
+  "name": "ciworks/imagescra[er",
+  "description": "Scrape images from a webpage to a given directory",
   "require": {
-    "php": ">=5.8.0",
+    "php": ">=7.2",
     "curl/curl": "^2.0",
-    "php-di/php-di": "^6.0",
-    "vlucas/phpdotenv": "^4.1"
+    "php-di/php-di": "^6.3.3",
+    "vlucas/phpdotenv": "^4.1",
+    "katzgrau/klogger": "dev-master"
   },
   "license": "MIT",
   "authors": [
     {
       "name": "Chima Ijeoma",
-      "email": "code@ciworks.co.uk"
+      "email": "info@ciworks.co.uk"
     }
   ],
   "autoload": {
     "psr-4": {
-      "CiWorks\\App\\": "src/"
+      "CiWorks\\App\\": "src/classes",
+      "CiWorks\\App\\Interfaces\\": "src/interfaces"
     }
   },
   "archive": {
-    "exclude": ["vendor", ".DS_Store"]
+    "exclude": [
+      "vendor",
+      ".DS_Store"
+    ]
   }
 }
