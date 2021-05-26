@@ -1,2 +1,6 @@
 vendor
 .env
+.idea/
+logs/
+images/
+src/tmp

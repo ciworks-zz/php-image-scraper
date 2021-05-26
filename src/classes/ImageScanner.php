@@ -1,95 +1,119 @@
 <?php
 
-declare(strict_types=1);
+namespace CiWorks\App;
 
-namespace CIWORKS\Classes;
+use CiWorks\App\Interfaces\ImageScannerInterface;
+use Katzgrau\KLogger\Logger;
+use RuntimeException;
 
-use CIWORKS\Interfaces\ImageScannerInterface;
-
-/**
- * Class to enable associated images to be returned for a given remote URL
- * Class ImageScanner
- * @author Chima Ijeoma (ciworks.co.uk)
- */
 class ImageScanner implements ImageScannerInterface
 {
+    /** @var CurlRequest */
+    private $request;
+
+    /** @var Logger */
+    private $logger;
+
+    /** @var string */
+    private $folderName;
+
+    /** @var string */
+    private $baseOutputFolder;
+
+    public function __construct(
+        CurlRequest $request,
+        Logger $logger,
+        string $baseOutputFolder = 'images'
+    ) {
+        $this->request = $request;
+        $this->logger = $logger;
+        $this->baseOutputFolder = $baseOutputFolder;
+    }
+
     /**
-     * @inherit
+     * @throws RuntimeException
      */
-    public static function fetch($remoteUrl) : array
+    public function fetch(string $remoteUrl): array
     {
+        $output = [];
 
-        try {
+        $deDupedList = $this->parseRemoteUrl($remoteUrl);
 
-            $curl = new \Curl\Curl();
-            $curl->setOpt(CURLOPT_RETURNTRANSFER, TRUE);
-            $curl->setOpt(CURLOPT_SSL_VERIFYPEER, FALSE);
-            $curl->get($remoteUrl);
-
-            if ($curl->error) {
-                echo 'An error occurred retrieving from remote URL - status code: ' . $curl->error_code;
-                exit();
+        foreach ($deDupedList as $entry) {
+            if ($this->isFullUrl($entry) && $this->isImage($entry)) {
+                $output[] = ['path' => $entry, 'meta' => $this->getImageMeta($entry)];
             }
-            else {
-                $out = $curl->response;
-            }
+        }
+        return $output;
+    }
 
-            libxml_use_internal_errors(true);
-            $dom = new \DOMDocument();
-            $dom->loadHTML($out);
-            $xpath = new \DOMXPath($dom);
+    public function scrape(array $imageList): void
+    {
+        $directory = $this->createOutputDirectory($this->folderName);
 
-            $returnedImageList = [];
-            $index = 0;
+        $this->logger->info("Output directory set to " . $this->folderName);
 
-            // iterate our curl output and parse any image urls using our Xpath query
-            foreach ($xpath->query('//img') as $item) {
-                $sourceImagePath = $item->getAttribute('src');
-
-                if (self::isImage($sourceImagePath)) {
-                    $imageMeta = self::getImageMeta($sourceImagePath);
-
-                    $returnedImageList[] = [
-                        'path'  => $item->getAttribute('src'),
-                        'width' => $imageMeta['width'],
-                        'height' => $imageMeta['height']
-                    ];
-                }
-            }
-
-            // close cURL resource
-            $curl->close;
-
-            return $returnedImageList;
-
-        } catch (Exception $e) {
-            echo "Unable to retrieve images from supplied URL: " . $e->getMessage() . "\n";
+        foreach ($imageList as $imageData) {
+            $filename = basename($imageData['path']);
+            $finalFile = sprintf('%s/%s', $directory, $filename);
+            file_put_contents($finalFile, file_get_contents($imageData['path']));
         }
     }
 
-    /**
-     * Extract image meta for a given filepath
-     * @param string $fileName
-     * @return String[]
-     */
-    private function getImageMeta($fileName) {
+    public function setFolderName(string $targetDir = ''): void
+    {
+        $this->folderName = 'output-' . (new \DateTime())->format('Ymd-His');
+        if ($targetDir) {
+            $this->folderName = $targetDir;
+        }
+    }
 
-        list($width, $height, $type, $attr) = getimagesize($fileName);
+    private function createOutputDirectory(string $folderName): string
+    {
 
-        return [
-            'width' => $width,
-            'height' => $height,
-            'type' => $type,
-            'attr' => $attr
-        ];
+        if (!file_exists($this->baseOutputFolder) && !is_dir($this->baseOutputFolder)) {
+            mkdir($this->baseOutputFolder);
+        }
+
+        $directory = $this->baseOutputFolder . '/' . $folderName;
+        if (!file_exists($directory) && !is_dir($directory)) {
+            mkdir($directory);
+        }
+        return $directory;
     }
 
     /**
-     * Regex check for a filepath to see if it contains an image reference
-     * @param string $filePath
-     * @return boolean|int
+     * @throws RuntimeException
      */
-    private function isImage($filePath) {
-        return preg_match("#\.(jpg|jpeg|gif|png)$# i", $filePath);
+    private function parseRemoteUrl(string $remoteUrl): array
+    {
+
+        $this->request->initalise();
+        $response = $this->request->get($remoteUrl . 'b');
+
+        $this->logger->debug("request headers: ", $this->request->getRequestHeaders());
+        $this->logger->debug("response header: ", $this->request->getResponseHeaders());
+
+        // We are only concerned with matching image tags so strip those out using regex
+        preg_match_all('|<img.*?src=[\'"](.*?)[\'"].*?>|i', $response, $matchedEntries);
+
+        return count($matchedEntries) ? array_unique($matchedEntries[1]) : [];
+    }
+
+    private function isFullUrl(string $path): bool
+    {
+        return filter_var($path, FILTER_VALIDATE_URL);
+    }
+
+    private function isImage(string $path): bool
+    {
+        return preg_match("#\.(jpg|jpeg|gif|png)$# i", $path);
+    }
+
+    private function getImageMeta(string $fileName): array
+    {
+        list($width, $height, $type, $attr) = getimagesize($fileName);
+
+        return ['width' => $width, 'height' => $height];
     }
 }

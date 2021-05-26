@@ -1,13 +1,8 @@
 <?php
 
-namespace CIWORKS\Interfaces;
+namespace CiWorks\App\Interfaces;
 
 interface ImageScannerInterface {
 
-    /**
-     * @param string $remoteUrl
-     * @return String array
-     */
-    public static function fetch($remoteUrl) : array;
+    public function fetch(string $remoteUrl) : array;
 }
-?>
